@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FindMyAdvisor - Unified Input UI</title>
+    <style>
+        /* ================= Design System ================= */
+        :root {
+            --cmu-red: #C41230;
+            --bg-color: #F8FAFC;
+            --surface: #FFFFFF;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --success: #10B981;
+            --accent-blue: #3B82F6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .stage {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .stage.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* ================= STAGE 1: STRUCTURED INPUT ================= */
+        #input-stage {
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-color);
+        }
+
+        .hero-text {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.04em;
+        }
+
+        .hero-text span {
+            color: var(--cmu-red);
+        }
+
+        .sub-text {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .input-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2.5rem 3rem;
+            width: 750px;
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+
+        .form-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            appearance: none;
+        }
+
+        select.form-control {
+            cursor: pointer;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* 👑 统一的混合输入框 (Hybrid Input Box) */
+        .hybrid-input-container {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            padding: 12px 14px;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            cursor: text;
+        }
+
+        /* 当内部的 textarea 聚焦时，高亮整个外部容器 */
+        .hybrid-input-container:has(textarea:focus) {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .hybrid-tags-area {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .input-tag {
+            background: #F1F5F9;
+            color: #334155;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            user-select: none;
+        }
+
+        .input-tag span {
+            cursor: pointer;
+            color: #94A3B8;
+        }
+
+        .input-tag span:hover {
+            color: #EF4444;
+        }
+
+        .hybrid-input-container textarea {
+            width: 100%;
+            border: none;
+            outline: none;
+            resize: vertical;
+            min-height: 80px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-main);
+            background: transparent;
+            font-family: inherit;
+        }
+
+        .hybrid-input-container textarea::placeholder {
+            color: #94A3B8;
+        }
+
+        .upload-zone {
+            border: 2px dashed #CBD5E1;
+            background: #F8FAFC;
+            border-radius: 12px;
+            padding: 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent-blue);
+            background: #EFF6FF;
+        }
+
+        .file-list {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-main);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .file-icon {
+            color: var(--success);
+        }
+
+        .btn-primary {
+            background-color: var(--cmu-red);
+            color: white;
+            border: none;
+            padding: 1.2rem;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 1rem;
+            box-shadow: 0 4px 12px rgba(196, 18, 48, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            background-color: #A30F28;
+            box-shadow: 0 6px 16px rgba(196, 18, 48, 0.3);
+        }
+
+        /* ================= STAGE 2: OUTPUT ================= */
+        #output-stage {
+            display: grid;
+            grid-template-columns: 38% 62%;
+            height: 100vh;
+            background: var(--bg-color);
+        }
+
+        .left-panel {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 2.5rem;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
+            z-index: 10;
+        }
+
+        .process-header {
+            margin-bottom: 2rem;
+        }
+
+        .process-header h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .spinner-ring {
+            width: 18px;
+            height: 18px;
+            border: 3px solid #E2E8F0;
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .timeline {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            padding-left: 10px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            bottom: 0;
+            left: 24px;
+            width: 2px;
+            background: #F1F5F9;
+            z-index: 1;
+        }
+
+        .step-item {
+            position: relative;
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.8rem;
+            opacity: 0;
+            transform: translateY(15px);
+            animation: slideUpFade 0.5s forwards;
+            z-index: 2;
+        }
+
+        @keyframes slideUpFade {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .step-icon {
+            width: 30px;
+            height: 30px;
+            background: white;
+            border: 2px solid #E2E8F0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .step-item.completed .step-icon {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .step-item.active .step-icon {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+
+        .step-content {
+            flex: 1;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        }
+
+        .step-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 0.3rem;
+            color: var(--text-main);
+        }
+
+        .step-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .right-panel {
+            padding: 3rem 4rem;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .skeleton-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            transition: opacity 0.5s ease;
+        }
+
+        .skeleton-header {
+            width: 250px;
+            height: 30px;
+            background: #E2E8F0;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            animation: pulse 1.5s infinite;
+        }
+
+        .skeleton-card {
+            height: 120px;
+            background: white;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        #actual-results {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+
+        #actual-results.visible {
+            display: block;
+            opacity: 1;
+        }
+
+        .results-header h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .results-header p {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .advisor-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .advisor-card:hover {
+            border-color: var(--cmu-red);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            transform: translateY(-2px);
+        }
+
+        .advisor-info h4 {
+            font-size: 1.15rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .advisor-info p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: #F1F5F9;
+            color: #475569;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .tag.success {
+            background: #ECFDF5;
+            color: #047857;
+        }
+
+        .score-box {
+            text-align: right;
+        }
+
+        .score-number {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--success);
+            line-height: 1;
+        }
+
+        .score-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        .drawer {
+            position: fixed;
+            top: 0;
+            right: -600px;
+            width: 500px;
+            height: 100vh;
+            overflow-y: auto;
+            background: var(--surface);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.05);
+            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 2.5rem;
+            z-index: 100;
+            border-left: 1px solid var(--border);
+        }
+
+        .drawer.open {
+            right: 0;
+        }
+
+        .sop-diff {
+            background: #F8FAFC;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            margin-top: 1.5rem;
+        }
+
+        .diff-old {
+            text-decoration: line-through;
+            color: #EF4444;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            opacity: 0.6;
+        }
+
+        .diff-new {
+            color: #059669;
+            font-weight: 500;
+            background: #D1FAE5;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            border-left: 4px solid #059669;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="input-stage" class="stage active">
+        <h1 class="hero-text">FindMy<span>Advisor</span>.</h1>
+        <p class="sub-text">Define your academic targets. We handle the deep web research.</p>
+
+        <div class="input-card">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Target Institution</label>
+                    <select class="form-control" disabled style="opacity:0.6;cursor:not-allowed;">
+                        <option value="cmu" selected>Carnegie Mellon University</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Target Department / Lab</label>
+                    <select id="dept-select" class="form-control">
+                        <option value="mld" selected>Machine Learning Department (MLD)</option>
+                        <option value="csd">Computer Science Department (CSD)</option>
+                        <option value="lti">Language Technologies Institute (LTI)</option>
+                        <option value="ri">Robotics Institute (RI)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group" style="width: 100%;">
+                    <label class="form-label">Research Interests & Keywords</label>
+
+                    <div class="hybrid-input-container" onclick="document.getElementById('research-textarea').focus();">
+                        <div class="hybrid-tags-area" id="tags-area"></div>
+                        <textarea id="research-textarea"
+                            placeholder="Type a keyword and press Enter to add a tag, or describe your research interests here..."
+                            onkeydown="handleTagInput(event)"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">CV / SOP (PDF or TXT) — <span style="font-weight:400;text-transform:none;">optional but improves matching</span></label>
+                    <div class="upload-zone" id="upload-zone"
+                         onclick="document.getElementById('cv-file-input').click()"
+                         ondragover="event.preventDefault(); this.style.borderColor='var(--accent-blue)'"
+                         ondragleave="this.style.borderColor=''"
+                         ondrop="handleFileDrop(event)">
+                        <input type="file" id="cv-file-input" accept=".pdf,.txt" hidden
+                               onchange="handleFileSelect(this.files)">
+                        <div id="upload-file-list" class="file-list" style="display:none"></div>
+                        <div id="upload-placeholder">
+                            <span style="color: var(--accent-blue); font-weight: 500; cursor:pointer;">+ Browse or Drop your CV / SOP</span>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Supports PDF · TXT</p>
+                        </div>
+                    </div>
+                    <!-- parsed text preview -->
+                    <textarea id="cv-text-preview" rows="3"
+                        style="display:none; width:100%; margin-top:8px; padding:10px; font-size:0.85rem;
+                               border:1px solid var(--border); border-radius:8px; resize:vertical; color:var(--text-main);"
+                        placeholder="Extracted CV text (you can edit this)..."></textarea>
+                </div>
+            </div>
+
+            <button class="btn-primary" onclick="startDeepResearch()">Initialize Deep Research Pipeline ✧</button>
+        </div>
+    </div>
+
+    <div id="output-stage" class="stage">
+
+        <section class="left-panel">
+            <div class="process-header">
+                <h3 id="process-title">
+                    <div class="spinner-ring" id="main-spinner"></div> Researching...
+                </h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 6px;">Synthesizing 40+ dynamic
+                    sources</p>
+            </div>
+            <div class="timeline" id="timeline-container">
+            </div>
+        </section>
+
+        <section class="right-panel">
+            <div id="loading-skeletons" class="skeleton-wrapper">
+                <div class="skeleton-header"></div>
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+            </div>
+
+            <div id="actual-results">
+                <div class="results-header">
+                    <h2>Top Recommended Advisors</h2>
+                    <p>Ranked by semantic alignment, verified funding, and recent activity.</p>
+                </div>
+
+                <div class="advisor-card" onclick="openDrawer()">
+                    <div class="advisor-info">
+                        <h4>Prof. Graham Neubig</h4>
+                        <p>Language Technologies Institute, CMU</p>
+                        <div class="tags">
+                            <span class="tag success">✓ Active NSF Funding</span>
+                            <span class="tag">Agentic Reasoning</span>
+                            <span class="tag">LLM Evaluation</span>
+                        </div>
+                    </div>
+                    <div class="score-box">
+                        <div class="score-number">95%</div>
+                        <div class="score-label">Match Score</div>
+                    </div>
+                </div>
+
+                <div class="advisor-card">
+                    <div class="advisor-info">
+                        <h4>Prof. Yonatan Bisk</h4>
+                        <p>Language Technologies Institute, CMU</p>
+                        <div class="tags">
+                            <span class="tag success">✓ Taking Students</span>
+                            <span class="tag">Embodied AI</span>
+                            <span class="tag">Grounding</span>
+                        </div>
+                    </div>
+                    <div class="score-box">
+                        <div class="score-number" style="color:#F59E0B">88%</div>
+                        <div class="score-label">Match Score</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sop-drawer" class="drawer">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h3 style="font-size: 1.25rem;">Tailor for Prof. Neubig</h3>
+                    <button onclick="closeDrawer()"
+                        style="border:none; background:none; font-size:1.8rem; cursor:pointer; color: var(--text-muted);">&times;</button>
+                </div>
+
+                <p style="color:var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                    <strong>Alignment Rationale:</strong> The agent detected that Prof. Neubig's lab recently published
+                    a preprint on "Verifying Agentic Reasoning Steps". Your background in ReAct workflows is a strong
+                    fit if phrased correctly.
+                </p>
+
+                <div class="sop-diff">
+                    <p
+                        style="font-weight: 600; font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; letter-spacing: 0.5px;">
+                        Suggested SOP Revision</p>
+                    <div class="diff-old">
+                        "I implemented various LLM APIs to create a workflow system that could handle multi-step tasks
+                        efficiently."
+                    </div>
+                    <div class="diff-new">
+                        "Leveraging the ReAct paradigm, I engineered an autonomous pipeline specifically designed to
+                        address intermediate reasoning verification—a challenge central to robust agentic systems."
+                    </div>
+                    <button class="btn-primary" style="margin-top: 1rem; padding: 0.8rem; font-size: 0.9rem;">Accept &
+                        Update SOP</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let currentStepEl = null;
+        let selectedProf = null;
+        let _cvText = '';
+
+        // ── Tag management ───────────────────────────────────────────────────
+        function addTag(text) {
+            text = text.trim();
+            if (!text) return;
+            const area = document.getElementById('tags-area');
+            // avoid duplicates
+            const existing = [...area.querySelectorAll('.input-tag')]
+                .map(t => t.childNodes[0].textContent.trim().toLowerCase());
+            if (existing.includes(text.toLowerCase())) return;
+            const tag = document.createElement('div');
+            tag.className = 'input-tag';
+            tag.innerHTML = `${escHtml(text)} <span onclick="this.parentElement.remove()" style="cursor:pointer;">×</span>`;
+            area.appendChild(tag);
+        }
+
+        function handleTagInput(e) {
+            if (e.key === 'Enter') {
+                const ta = document.getElementById('research-textarea');
+                const line = ta.value.split('\n').pop().trim();
+                // If the last line looks like a keyword (short, no full stop), add as tag
+                if (line && line.length < 40 && !line.includes('.')) {
+                    e.preventDefault();
+                    addTag(line);
+                    ta.value = ta.value.slice(0, ta.value.lastIndexOf(line)).trimEnd();
+                }
+            }
+        }
+
+        function getTagTexts() {
+            return [...document.querySelectorAll('#tags-area .input-tag')]
+                .map(t => t.childNodes[0].textContent.trim())
+                .filter(Boolean);
+        }
+
+        // ── File upload ──────────────────────────────────────────────────────
+        function handleFileDrop(e) {
+            e.preventDefault();
+            document.getElementById('upload-zone').style.borderColor = '';
+            handleFileSelect(e.dataTransfer.files);
+        }
+
+        async function handleFileSelect(files) {
+            if (!files || !files.length) return;
+            const file = files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // show loading state
+            const placeholder = document.getElementById('upload-placeholder');
+            placeholder.innerHTML = `<span style="color:var(--text-muted)">Parsing ${escHtml(file.name)}...</span>`;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/parse-file`, { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+
+                _cvText = data.text;
+
+                // show file name in list
+                const list = document.getElementById('upload-file-list');
+                list.style.display = '';
+                list.innerHTML = `<div class="file-item"><span class="file-icon">✓</span> ${escHtml(file.name)}
+                    <span onclick="clearFile()" style="cursor:pointer;color:#94A3B8;margin-left:8px;">×</span></div>`;
+                placeholder.style.display = 'none';
+
+                // show editable preview
+                const preview = document.getElementById('cv-text-preview');
+                preview.style.display = '';
+                preview.value = _cvText;
+                preview.oninput = () => { _cvText = preview.value; };
+            } catch (err) {
+                placeholder.innerHTML = `<span style="color:#EF4444">Error: ${escHtml(err.message)}</span>
+                    <span onclick="clearFile()" style="cursor:pointer;color:#94A3B8;margin-left:8px;font-size:0.8rem;">retry</span>`;
+            }
+        }
+
+        function clearFile() {
+            _cvText = '';
+            document.getElementById('upload-file-list').style.display = 'none';
+            document.getElementById('upload-placeholder').style.display = '';
+            document.getElementById('upload-placeholder').innerHTML = `
+                <span style="color:var(--accent-blue);font-weight:500;cursor:pointer;">+ Browse or Drop your CV / SOP</span>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">Supports PDF · TXT</p>`;
+            document.getElementById('cv-text-preview').style.display = 'none';
+            document.getElementById('cv-file-input').value = '';
+        }
+
+        // ── Main entry: submit form & connect to SSE stream ─────────────────
+        async function startDeepResearch() {
+            const textarea = document.getElementById('research-textarea');
+            const tags = getTagTexts();
+            let statement = tags.join(', ');
+            if (textarea.value.trim()) {
+                statement += (statement ? '\n\n' : '') + textarea.value.trim();
+            }
+            if (!statement.trim() && !_cvText.trim()) {
+                alert('Please describe your research interests or upload your CV/SOP first.');
+                return;
+            }
+
+            // Reset output panel
+            document.getElementById('timeline-container').innerHTML = '';
+            document.getElementById('loading-skeletons').style.display = '';
+            document.getElementById('loading-skeletons').style.opacity = '1';
+            document.getElementById('actual-results').classList.remove('visible');
+            document.getElementById('main-spinner').style.display = '';
+            document.getElementById('process-title').innerHTML =
+                '<div class="spinner-ring" id="main-spinner"></div> Researching...';
+            document.getElementById('process-title').style.color = '';
+            currentStepEl = null;
+
+            // Transition to output stage
+            document.getElementById('input-stage').classList.remove('active');
+            await new Promise(r => setTimeout(r, 500));
+            document.getElementById('output-stage').classList.add('active');
+
+            // POST to start pipeline
+            let job_id;
+            try {
+                const res = await fetch(`${API_BASE}/api/search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        research_statement: statement || '(see CV/SOP)',
+                        cv_text: _cvText,
+                        department: document.getElementById('dept-select').value,
+                    }),
+                });
+                if (!res.ok) throw new Error(`Server error ${res.status}`);
+                ({ job_id } = await res.json());
+            } catch (err) {
+                showError('Could not reach backend: ' + err.message);
+                return;
+            }
+
+            // Open SSE stream
+            const es = new EventSource(`${API_BASE}/api/stream/${job_id}`);
+            es.onmessage = e => handleEvent(JSON.parse(e.data), es);
+            es.onerror = () => { showError('Stream connection lost.'); es.close(); };
+        }
+
+        // ── SSE event router ────────────────────────────────────────────────
+        function handleEvent(event, es) {
+            if (event.type === 'step') {
+                addStep(event.icon, event.title, event.desc, false);
+            }
+            if (event.type === 'analyzing') {
+                if (currentStepEl) {
+                    const d = currentStepEl.querySelector('.step-desc');
+                    if (d) d.textContent =
+                        `Analyzing ${event.name} (${event.index}/${event.total})...`;
+                }
+            }
+            if (event.type === 'results') {
+                renderResults(event.professors);
+            }
+            if (event.type === 'done') {
+                finalizeSteps();
+                es.close();
+            }
+            if (event.type === 'error') {
+                showError(event.message);
+                es.close();
+            }
+        }
+
+        // ── Timeline helpers ─────────────────────────────────────────────────
+        function addStep(icon, title, desc, done) {
+            const container = document.getElementById('timeline-container');
+            if (currentStepEl) {
+                currentStepEl.classList.remove('active');
+                currentStepEl.classList.add('completed');
+                currentStepEl.querySelector('.step-icon').innerHTML = '✓';
+            }
+            const el = document.createElement('div');
+            el.className = 'step-item active';
+            el.innerHTML = `
+                <div class="step-icon">${icon}</div>
+                <div class="step-content">
+                    <div class="step-title">${title}</div>
+                    <div class="step-desc">${desc}</div>
+                </div>`;
+            container.appendChild(el);
+            currentStepEl = el;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function finalizeSteps() {
+            if (currentStepEl) {
+                currentStepEl.classList.remove('active');
+                currentStepEl.classList.add('completed');
+                currentStepEl.querySelector('.step-icon').innerHTML = '✓';
+            }
+            document.getElementById('main-spinner').style.display = 'none';
+            document.getElementById('process-title').innerHTML = '✓ Research Complete';
+            document.getElementById('process-title').style.color = 'var(--success)';
+            revealResults();
+        }
+
+        function revealResults() {
+            const skeleton = document.getElementById('loading-skeletons');
+            skeleton.style.opacity = '0';
+            setTimeout(() => {
+                skeleton.style.display = 'none';
+                document.getElementById('actual-results').classList.add('visible');
+            }, 500);
+        }
+
+        function showError(msg) {
+            document.getElementById('main-spinner').style.display = 'none';
+            document.getElementById('process-title').innerHTML = '✗ Error';
+            document.getElementById('process-title').style.color = '#EF4444';
+            addStep('❌', 'Pipeline Error', msg, true);
+        }
+
+        // ── Render real professor cards ──────────────────────────────────────
+        function renderResults(professors) {
+            const container = document.getElementById('actual-results');
+            container.innerHTML = `
+                <div class="results-header">
+                    <h2>Top Recommended Advisors</h2>
+                    <p>Ranked by semantic alignment + deep research verification.</p>
+                </div>`;
+
+            professors.slice(0, 8).forEach(prof => {
+                const pct = Math.round(prof.score * 100);
+                const color = pct >= 80 ? 'var(--success)' : pct >= 60 ? '#F59E0B' : '#94A3B8';
+                const kw = (prof.keywords || [])
+                    .map(k => `<span class="tag">${escHtml(k)}</span>`).join('');
+                const statusTag =
+                    prof.accepting_students === true
+                        ? '<span class="tag success">✓ May be accepting students</span>'
+                        : prof.accepting_students === false
+                        ? '<span class="tag" style="color:#EF4444">Not currently recruiting</span>'
+                        : '';
+
+                const card = document.createElement('div');
+                card.className = 'advisor-card';
+                card.style.cursor = 'pointer';
+                card.innerHTML = `
+                    <div class="advisor-info">
+                        <h4>${escHtml(prof.name)}</h4>
+                        <p>${escHtml(prof.title || '')}, ${escHtml(prof.department || 'MLD')}</p>
+                        <div class="tags">${statusTag}${kw}</div>
+                    </div>
+                    <div class="score-box">
+                        <div class="score-number" style="color:${color}">${pct}%</div>
+                        <div class="score-label">Match Score</div>
+                    </div>`;
+                card.onclick = () => openDrawerForProf(prof);
+                container.appendChild(card);
+            });
+        }
+
+        // ── Detail drawer ────────────────────────────────────────────────────
+        function openDrawerForProf(prof) {
+            selectedProf = prof;
+            const drawer = document.getElementById('sop-drawer');
+            drawer.querySelector('h3').textContent = `Analysis: ${prof.name}`;
+
+            const pct = Math.round(prof.score * 100);
+            const statusHtml =
+                prof.accepting_students === true
+                    ? '<span style="display:inline-block;padding:4px 10px;background:#D1FAE5;color:#065F46;border-radius:6px;font-size:.85rem;font-weight:600;margin-bottom:1rem;">✓ Appears to be accepting new students</span>'
+                    : prof.accepting_students === false
+                    ? '<span style="display:inline-block;padding:4px 10px;background:#FEE2E2;color:#991B1B;border-radius:6px;font-size:.85rem;font-weight:600;margin-bottom:1rem;">✗ Not actively recruiting</span>'
+                    : '';
+
+            const kfHtml = prof.key_finding
+                ? `<div style="padding:.8rem 1rem;background:#F1F5F9;border-left:3px solid var(--accent-blue);
+                               border-radius:0 6px 6px 0;margin-bottom:1rem;">
+                       <p style="font-size:.8rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);
+                                  letter-spacing:.5px;margin-bottom:4px;">Key Finding</p>
+                       <p style="font-size:.9rem;color:var(--text-main);line-height:1.5;margin:0;">
+                           ${escHtml(prof.key_finding)}</p>
+                   </div>`
+                : '';
+
+            const linksHtml = `<div style="display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap;">
+                ${prof.homepage_url ? `<a href="${prof.homepage_url}" target="_blank"
+                    style="color:var(--accent-blue);text-decoration:none;font-size:.85rem;
+                           padding:4px 10px;border:1px solid var(--accent-blue);border-radius:6px;">
+                    🏠 Homepage</a>` : ''}
+                ${prof.google_scholar_url ? `<a href="${prof.google_scholar_url}" target="_blank"
+                    style="color:var(--accent-blue);text-decoration:none;font-size:.85rem;
+                           padding:4px 10px;border:1px solid var(--accent-blue);border-radius:6px;">
+                    📚 Google Scholar</a>` : ''}
+            </div>`;
+
+            drawer.querySelector('.sop-diff').innerHTML = `
+                <!-- ① Match Analysis section -->
+                <div style="margin-bottom:1.5rem;">
+                    <p style="font-weight:700;font-size:.8rem;text-transform:uppercase;
+                               color:var(--text-muted);letter-spacing:.5px;margin-bottom:.75rem;">
+                        Match Analysis · ${pct}% Alignment
+                    </p>
+                    ${statusHtml}
+                    <p style="color:var(--text-muted);font-size:.9rem;line-height:1.6;margin-bottom:.75rem;">
+                        <strong style="color:var(--text-main);">Why you should reach out:</strong><br>
+                        ${escHtml(prof.match_rationale || '—')}
+                    </p>
+                    ${kfHtml}
+                    ${linksHtml}
+                </div>
+
+                <hr style="border:none;border-top:1px solid var(--border);margin:1.5rem 0;">
+
+                <!-- ② SOP / CV Suggestions section -->
+                <div>
+                    <p style="font-weight:700;font-size:.8rem;text-transform:uppercase;
+                               color:var(--text-muted);letter-spacing:.5px;margin-bottom:.75rem;">
+                        SOP / CV Suggestions
+                    </p>
+                    <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">
+                        ${_cvText
+                            ? 'Based on your uploaded materials, generate targeted edits to strengthen your application to this advisor.'
+                            : 'No CV uploaded — will generate general writing suggestions for reaching out to this advisor.'}
+                    </p>
+                    <button id="btn-generate-sop"
+                        onclick="generateSopSuggestions()"
+                        style="width:100%;padding:.75rem;background:var(--cmu-red);color:#fff;
+                               border:none;border-radius:8px;font-size:.9rem;font-weight:600;
+                               cursor:pointer;transition:opacity .2s;">
+                        ✨ Generate SOP / CV Suggestions
+                    </button>
+                    <div id="sop-suggestions-output" style="margin-top:1.25rem;"></div>
+                </div>`;
+
+            drawer.classList.add('open');
+        }
+
+        // ── SOP suggestion generation ─────────────────────────────────────────
+        async function generateSopSuggestions() {
+            if (!selectedProf) return;
+            const btn = document.getElementById('btn-generate-sop');
+            const out = document.getElementById('sop-suggestions-output');
+            btn.disabled = true;
+            btn.textContent = '⏳ Generating…';
+            out.innerHTML = '';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/tailor`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        professor: selectedProf,
+                        user_query: document.getElementById('research-textarea').value
+                            || getTagTexts().join(', '),
+                        cv_text: _cvText,
+                    }),
+                });
+                const { suggestions } = await res.json();
+                renderSopSuggestions(suggestions, out);
+                btn.textContent = '↺ Regenerate';
+            } catch (err) {
+                out.innerHTML = `<p style="color:#EF4444;font-size:.85rem;">Error: ${escHtml(err.message)}</p>`;
+                btn.textContent = '✨ Generate SOP / CV Suggestions';
+            }
+            btn.disabled = false;
+        }
+
+        function renderSopSuggestions(suggestions, container) {
+            if (!suggestions || !suggestions.length) {
+                container.innerHTML = '<p style="color:var(--text-muted);font-size:.85rem;">No suggestions returned.</p>';
+                return;
+            }
+            container.innerHTML = suggestions.map((s, i) => `
+                <div style="margin-bottom:1.25rem;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+                    <div style="padding:.5rem .75rem;background:#F8FAFC;border-bottom:1px solid var(--border);
+                                font-size:.75rem;font-weight:700;text-transform:uppercase;
+                                color:var(--text-muted);letter-spacing:.4px;">
+                        ${escHtml(s.section || `Suggestion ${i + 1}`)}
+                    </div>
+                    ${s.original ? `
+                    <div style="padding:.75rem;background:#FEF2F2;border-bottom:1px solid #FECACA;">
+                        <p style="font-size:.7rem;font-weight:700;color:#991B1B;margin-bottom:4px;text-transform:uppercase;">Before</p>
+                        <p style="font-size:.85rem;color:#7F1D1D;line-height:1.5;margin:0;">${escHtml(s.original)}</p>
+                    </div>` : ''}
+                    <div style="padding:.75rem;background:#F0FDF4;border-bottom:1px solid #BBF7D0;">
+                        <p style="font-size:.7rem;font-weight:700;color:#065F46;margin-bottom:4px;text-transform:uppercase;">After</p>
+                        <p style="font-size:.85rem;color:#14532D;line-height:1.5;margin:0;">${escHtml(s.revised)}</p>
+                    </div>
+                    ${s.reason ? `
+                    <div style="padding:.6rem .75rem;background:#fff;">
+                        <p style="font-size:.8rem;color:var(--text-muted);margin:0;font-style:italic;">
+                            💡 ${escHtml(s.reason)}</p>
+                    </div>` : ''}
+                </div>`).join('');
+        }
+
+        function openDrawer() { document.getElementById('sop-drawer').classList.add('open'); }
+        function closeDrawer() { document.getElementById('sop-drawer').classList.remove('open'); }
+
+        function escHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+
+</html>
