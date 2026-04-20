@@ -9,11 +9,27 @@ from .professor_loader import strip_html
 
 _TOOLS = [
     {
+        "name": "web_search",
+        "description": (
+            "Search the web for information about a professor. "
+            "Use this to find: whether they are recruiting PhD students, recent grants/funding, "
+            "recent publications, lab news, or any other current information. "
+            "Returns top search result titles, URLs, and snippets."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Search query, e.g. 'Graham Neubig CMU recruiting PhD students 2025'"}
+            },
+            "required": ["query"],
+        },
+    },
+    {
         "name": "fetch_webpage",
         "description": (
-            "Fetch the current live content of a webpage. "
-            "Use this to find latest research directions, open PhD positions, "
-            "recent publications, or lab news for a professor."
+            "Fetch the full content of a specific webpage URL. "
+            "Use this after web_search to read a promising page in detail, "
+            "or to fetch the professor's homepage, lab page, or Google Scholar page directly."
         ),
         "input_schema": {
             "type": "object",
@@ -22,18 +38,22 @@ _TOOLS = [
             },
             "required": ["url"],
         },
-    }
+    },
 ]
 
-_SYSTEM = """You are an expert academic advisor matching assistant for CMU's Machine Learning Department.
+_SYSTEM = """You are an expert academic advisor matching assistant.
 Given a student's research interests and a professor's profile, you will:
 1. Assess research alignment on a 0-10 scale
 2. Determine if the professor appears to be accepting new PhD students
 3. Extract 3-4 keyword tags for the professor's research areas
 4. Write a compelling 2-3 sentence match rationale for the student
-5. Note one key finding from your research
+5. Note one key finding from your research (ideally something specific like a recent paper, grant, or recruiting status)
 
-You may use the fetch_webpage tool to retrieve the latest information from the professor's homepage or lab page if needed.
+You have two tools:
+- web_search: search for current information (use this first to find recruiting status, recent funding, new papers)
+- fetch_webpage: fetch a specific URL in full detail
+
+Strategy: use web_search to discover current information you wouldn't find in the static profile snapshot, then fetch_webpage if you need to read a specific page more carefully.
 
 Always end with a JSON block in this exact format (no trailing commas):
 ```json
@@ -73,7 +93,6 @@ class ResearchAgent:
 
 ---
 Professor: {name} ({title})
-CMU Machine Learning Department
 Homepage: {homepage_url}
 Google Scholar: {scholar_url}
 
@@ -81,11 +100,14 @@ Homepage content snapshot (may be outdated):
 {clean_content}
 
 ---
-Please analyze this professor as a potential PhD advisor match. You may fetch their homepage for more current information if needed. End with the JSON summary block."""
+Please analyze this professor as a potential PhD advisor match.
+Use web_search to find current recruiting status, recent papers, or funding information.
+Then fetch a page if you need more detail.
+End with the JSON summary block."""
 
         messages = [{"role": "user", "content": user_msg}]
 
-        for step in range(3):
+        for step in range(4):
             response = await self.client.messages.create(
                 model=self.model,
                 max_tokens=1024,
@@ -99,17 +121,26 @@ Please analyze this professor as a potential PhD advisor match. You may fetch th
                 tool_results = []
                 for block in response.content:
                     if block.type == "tool_use":
-                        url = block.input.get("url", "")
-                        print(f"  [{name}] TOOL CALL fetch_webpage({url})", flush=True)
-                        fetched = await _fetch_page(url)
-                        print(f"  [{name}] fetched {len(fetched)} chars", flush=True)
-                        tool_results.append(
-                            {
+                        if block.name == "web_search":
+                            query = block.input.get("query", "")
+                            print(f"  [{name}] TOOL CALL web_search({query!r})", flush=True)
+                            result = await _web_search(query)
+                            print(f"  [{name}] search returned {len(result)} chars", flush=True)
+                            tool_results.append({
                                 "type": "tool_result",
                                 "tool_use_id": block.id,
-                                "content": fetched[:3000],
-                            }
-                        )
+                                "content": result,
+                            })
+                        elif block.name == "fetch_webpage":
+                            url = block.input.get("url", "")
+                            print(f"  [{name}] TOOL CALL fetch_webpage({url})", flush=True)
+                            fetched = await _fetch_page(url)
+                            print(f"  [{name}] fetched {len(fetched)} chars", flush=True)
+                            tool_results.append({
+                                "type": "tool_result",
+                                "tool_use_id": block.id,
+                                "content": fetched[:4000],
+                            })
                 messages.append({"role": "assistant", "content": response.content})
                 messages.append({"role": "user", "content": tool_results})
             else:
@@ -142,6 +173,37 @@ Please analyze this professor as a potential PhD advisor match. You may fetch th
         }
 
 
+async def _web_search(query: str, num_results: int = 5) -> str:
+    """Search DuckDuckGo and return top results as text. No API key needed."""
+    search_url = "https://html.duckduckgo.com/html/"
+    try:
+        async with httpx.AsyncClient(
+            timeout=10.0,
+            follow_redirects=True,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; FindMyAdvisor/1.0)"},
+        ) as client:
+            resp = await client.post(search_url, data={"q": query})
+            html = resp.text
+
+        # Extract result titles, URLs, snippets from DuckDuckGo HTML
+        results = []
+        # Each result is in a div with class 'result'
+        blocks = re.findall(r'<a[^>]+class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', html, re.DOTALL)
+        snippets = re.findall(r'class="result__snippet"[^>]*>(.*?)</(?:a|span)>', html, re.DOTALL)
+
+        for i, (url, title) in enumerate(blocks[:num_results]):
+            title_clean = re.sub(r'<[^>]+>', '', title).strip()
+            snippet_clean = re.sub(r'<[^>]+>', '', snippets[i]).strip() if i < len(snippets) else ""
+            results.append(f"[{i+1}] {title_clean}\nURL: {url}\n{snippet_clean}")
+
+        if not results:
+            return f"No results found for: {query}"
+        return "\n\n".join(results)
+
+    except Exception as exc:
+        return f"Search failed: {exc}"
+
+
 async def _fetch_page(url: str) -> str:
     if not url.startswith(("http://", "https://")):
         return "Invalid URL"
@@ -158,14 +220,12 @@ async def _fetch_page(url: str) -> str:
 
 
 def _parse_json(text: str) -> dict:
-    # Try fenced code block first
     m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if m:
         try:
             return json.loads(m.group(1))
         except json.JSONDecodeError:
             pass
-    # Fall back to finding any JSON object containing "score"
     m = re.search(r'\{[^{}]*"score"[^{}]*\}', text, re.DOTALL)
     if m:
         try:
